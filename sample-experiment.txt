@@ -1,0 +1,200 @@
+gen-code:
+
+Notes #1 :
+
+Day 1:
+======
+Gradle project just like build tool project
+it is java project
+start spring io
+spring boot.
+jackson is used to load the object out of metadata
+
+Two ways of code generation:
+1. Template based ex. freemarker, velocity 
+2. complie time generation using annotation. So, when it looks at anotation it will add extra code. Ex. JDK provides this feature
+
+Day 2:
+======
+UI generation:
+first he selects component
+all the configuartion should be done
+we need to create/save that json based on user/client session to save the file (just to make sure if multiple users or woking on the this appliaction)
+
+****************
+Notes #2 :
+
+#spring.main.web-environment=false - to make it web app - by default it is true.
+
+
+To remove command line support - after the implementation complete web-app
+	- remove 'implements CommandLineRunner' from GeneratorApplication
+	- delete run() from GeneratorApplication
+
+
+
+	========
+
+	to run this on any host
+
+	option 1:
+	this project will build a jar file (everything bundled)
+	run this app by => java -jar <jarname>.jar
+
+	From intellij => to build a jar run build command in gradle project->build
+	From cmd => gradlew build
+
+	This will place jar file under <project-root>/build/libs
+	this option is for without web server (internal webserver  will be invoked)
+	sometime port conflict might come (if 8080 is used by some other app) - so pass port number while run this app => java -jar jarname.jar -Dserver.port=8081
+
+
+	option 2:
+	build a war to deploy on your own tomcat - like gradlew war
+
+******************
+Notes #3 :
+
+
+to set up code generator:
+—————————————
+Go to preference and do below setting:
+Lombarck plugin should be installed.
+Annotation processor should be enabled
+
+
+Notes #4:
+
+
+package com;
+
+import com.AutomationTestFrameworkTestsGeneratorService;
+
+import com.domain.GeneratorService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
+
+import java.util.Arrays;
+import java.util.Scanner;
+
+@SpringBootApplication
+public class GeneratorApplication implements CommandLineRunner {
+
+    private static final Logger logger = LoggerFactory.getLogger(GeneratorApplication.class);
+    @Autowired
+    private AutomationTestFrameworkTestsGeneratorService automationTestFrameworkTestsGeneratorService;
+
+    @Autowired
+    private GeneratorService generatorService;
+
+
+
+    @Autowired
+    private DomainGeneratorService domainGeneratorService;
+
+    @Autowired
+    private DomainIntegrationTestGeneratorService domainIntegrationTestGeneratorService;
+
+    @Autowired
+    private ServiceGeneratorService serviceGeneratorService;
+
+    @Autowired
+    private ServiceIntegrationTestGeneratorService serviceIntegrationTestGeneratorService;
+
+
+    public static void main(String[] args) {
+        SpringApplication.run(GeneratorApplication.class, args);
+    }
+
+    @Bean
+    public WebMvcConfigurer corsConfigurer() {
+        return new WebMvcConfigurerAdapter() {
+            @Override
+            public void addCorsMappings(CorsRegistry registry) {
+                registry.addMapping("/**");
+            }
+        };
+    }
+
+    @Override
+    public void run(String... args) throws Exception {
+        boolean runApiGeneration;
+        boolean runFunctionalTestGeneration;
+        boolean runGuidScriptGeneration;
+        boolean runDomainGeneration;
+        boolean runDomainIntegrationTestGeneration;
+        boolean runServiceGeneration;
+        boolean runServiceIntegrationTestGeneration;
+        boolean runCompositeServiceGeneration;
+        boolean runCompositeServiceIntegrationTestGeneration;
+        Scanner scanner = new Scanner(System.in);
+
+        //api code generation part
+        System.out.print("Generate API Code?(Y/N):");
+        runApiGeneration = scanner.next().equalsIgnoreCase("Y");
+        if (runApiGeneration) {
+            System.out.print("Please enter the full path to the config-domains-old.json:");
+            String domainConfigPath = scanner.next();
+            System.out.print("Please enter the full path to the config-tables.json:");
+            String tableConfigPath = scanner.next();
+            generatorService.generate(Arrays.asList(domainConfigPath, tableConfigPath));
+        }
+
+        //functional tests generation part
+        System.out.print("Generate Functional Tests?(Y/N):");
+        runFunctionalTestGeneration = scanner.next().equalsIgnoreCase("Y");
+        if (runFunctionalTestGeneration) {
+            System.out.print("Please enter the full path to the config-automation-tests.json:");
+            String path = scanner.next();
+            automationTestFrameworkTestsGeneratorService.generate(path);
+        }
+
+
+        //domain generation part
+        System.out.print("Generate Domains?(Y/N):");
+        runDomainGeneration = scanner.next().equalsIgnoreCase("Y");
+        if (runDomainGeneration) {
+            System.out.print("Please enter the full path to the config-domains.json:");
+            String path = scanner.next();
+            domainGeneratorService.generate(path, null);
+        }
+
+        //domain integration test generation part
+        System.out.print("Generate Domain Integration Tests?(Y/N):");
+        runDomainIntegrationTestGeneration = scanner.next().equalsIgnoreCase("Y");
+        if (runDomainIntegrationTestGeneration) {
+            System.out.print("Please enter the full path to the config-domain-integration-tests.json:");
+            String path = scanner.next();
+            domainIntegrationTestGeneratorService.generate(path, null);
+        }
+
+        //service generation part
+        System.out.print("Generate Services?(Y/N):");
+        runServiceGeneration = scanner.next().equalsIgnoreCase("Y");
+        if (runServiceGeneration) {
+            System.out.print("Please enter the full path to the config-services.json:");
+            String path = scanner.next();
+            serviceGeneratorService.generate(path, null);
+        }
+
+        //service integration test generation part
+        System.out.print("Generate Service Integration Tests?(Y/N):");
+        runServiceIntegrationTestGeneration = scanner.next().equalsIgnoreCase("Y");
+        if (runServiceIntegrationTestGeneration) {
+            System.out.print("Please enter the full path to the config-service-integration-tests.json:");
+            String path = scanner.next();
+            serviceIntegrationTestGeneratorService.generate(path, null);
+        }
+
+    }
+
+
+}
